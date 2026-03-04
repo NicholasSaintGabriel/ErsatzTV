@@ -28,6 +28,8 @@ ErsatzTV lets you transform your media library into a personalized, live TV expe
 
 Documentation is available at [ersatztv.org](https://ersatztv.org/docs/).
 
+For local source rebuild/retest and custom Docker image publishing, see [docker/RECOMPILE_RETEST_DEPLOY.md](docker/RECOMPILE_RETEST_DEPLOY.md).
+
 ## License
 
 This project is inspired by [pseudotv-plex](https://github.com/DEFENDORe/pseudotv) and
