@@ -12,13 +12,18 @@
                     @FormatText()
                 </MudText>
             </MudContainer>
-            <MudSelect Class="mb-6 mx-4" Label="Daily Reset Time" @bind-Value="_resetTime">
-                <MudSelectItem Value="@(Option<TimeSpan>.None)">Do not automatically reset</MudSelectItem>
+            <MudCheckBox Class="mb-2 mx-4"
+                         @bind-Value="_enableDailyReset"
+                         Label="Enable daily playout reset" />
+            <MudSelect Class="mb-6 mx-4"
+                       Label="Daily Reset Time"
+                       @bind-Value="_selectedResetTime"
+                       Disabled="@(!_enableDailyReset)">
                 @for (var i = 1; i < 48; i++)
                 {
                     var time = TimeSpan.FromHours(i * 0.5);
                     string formatted = DateTime.Today.Add(time).ToShortTimeString();
-                    <MudSelectItem Value="@(Option<TimeSpan>.Some(time))">@formatted</MudSelectItem>
+                    <MudSelectItem Value="@time">@formatted</MudSelectItem>
                 }
             </MudSelect>
         </EditForm>
@@ -49,13 +54,15 @@
     [Parameter]
     public Option<TimeSpan> DailyResetTime { get; set; }
 
-    private string FormatText() => $"Enter the time that the playout on channel {ChannelName} with schedule {ScheduleName} should reset every day";
+    private string FormatText() =>
+        $"Enter the time that the playout on channel {ChannelName} with schedule {ScheduleName} should reset every day";
 
     private record DummyModel;
 
     private readonly DummyModel _dummyModel = new();
 
-    private Option<TimeSpan> _resetTime;
+    private bool _enableDailyReset;
+    private TimeSpan _selectedResetTime = TimeSpan.FromHours(1);
 
     public void Dispose()
     {
@@ -63,12 +70,24 @@
         _cts?.Dispose();
     }
 
-    protected override void OnParametersSet() => _resetTime = DailyResetTime;
+    protected override void OnParametersSet()
+    {
+        _enableDailyReset = DailyResetTime.IsSome;
+
+        foreach (TimeSpan dailyResetTime in DailyResetTime)
+        {
+            _selectedResetTime = dailyResetTime;
+        }
+    }
 
     private async Task Submit()
     {
+        Option<TimeSpan> resetTime = _enableDailyReset
+            ? Option<TimeSpan>.Some(_selectedResetTime)
+            : Option<TimeSpan>.None;
+
         Either<BaseError, PlayoutNameViewModel> maybeResult =
-            await Mediator.Send(new UpdatePlayout(PlayoutId, _resetTime), _cts.Token);
+            await Mediator.Send(new UpdatePlayout(PlayoutId, resetTime), _cts.Token);
 
         maybeResult.Match(
             playout => { MudDialog.Close(DialogResult.Ok(playout)); },
